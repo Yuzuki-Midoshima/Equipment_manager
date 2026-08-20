@@ -1,193 +1,322 @@
-# Equipment Manager
+# Equipment Manager for Maya
 
-Maya 2026向けの、Sword・Shield・Bow・Arrow・String操作をまとめたアニメーター用装備管理ツールです。左右の持ち替えと装備ごとの位置補正を、同じUIから安全に操作できます。
+Autodesk Maya 2026向けの、**武器・プロップの持ち替えと追従状態を管理するアニメーション支援ツール**です。
 
-## 対象ユーザー
+Sword、Shield、Bow、Arrow、Stringの操作を1つのUIへまとめ、Constraint WeightやSpace Attributeを手作業で切り替える際の操作負担や設定漏れを減らすことを目的としています。
+また、アニメーターの要望により全機能において武器コントローラーに直接キーフレームを打つことを可能にするなど、改良を重ねました。
 
-- キャラクターアニメーター
-- Maya用リグ／パイプラインツール開発者
-- PythonによるMayaツールの責務分離例を確認したい方
+本ツールは、キャラクター **Diana** の武器リグ制作で使用したワークフローをもとに、処理の責務を整理し、保守・拡張しやすい構成へ再設計しています。
 
-## 解決する課題
+---
 
-手作業でConstraint WeightやSpace Attributeを変更すると、設定漏れや左右の値の取り違えが起こります。本ツールは装備操作を定型化し、アニメーターが保存した左右別オフセットを持ち替え後に復元します。
+## Features
 
-## 主な機能
+### Equipment Switching
 
-- Sword・Shield・Bowの左右持ち替え
-- 装備ごとの左右別オフセット保存／復元
-- 装備Follow ON／OFF
-- Arrowの左右切り替え、Follow、オフセット保存
-- Arrow Reset基準の保存／ワールド位置への1回スナップ
-- String Release／String Follow
-- String Follow OFF時のIK姿勢からFKコントローラーへの姿勢合わせ
-- String Follow ON時のFK姿勢からIK Hand／Pole Vectorへの姿勢合わせ
-- 選択中の手、Follow状態、装備タブの表示同期
-- 不足ノードや不正なConstraint Aliasの警告表示
-- 起動時と装備タブ切り替え時のシーン状態読み取り同期
+Sword、Shield、Bowの持ち手を左右で切り替えます。
 
-## 動作環境
+装備ごとに設定されたSpace AttributeやConstraintを操作し、現在の持ち手を変更します。
+
+左右それぞれにTransform Offsetを保存でき、持ち手を切り替えた際には保存済みのOffsetを復元します。
+
+---
+
+### Follow Control
+
+Sword、Shield、Bowについて、キャラクターへのFollowをON / OFFできます。
+
+装備ごとのリグ構造に合わせてConstraintの状態を変更し、手への追従と自由な配置を切り替えます。
+
+現在のFollow状態はシーンから取得され、UIにも反映されます。
+
+---
+
+### Offset Save / Restore
+
+各装備について、左右別にTransform Offsetをアニメーターが任意位置に保存することができます。
+
+保存対象はTranslate / Rotateの各チャンネルです。
+
+持ち手を切り替えた際には対応する側のOffsetを復元することで、装備ごとに必要な位置・角度を再利用できます。
+
+---
+
+## Bow & Arrow
+
+Bowでは通常の装備操作に加えて、ArrowとStringを扱う専用機能を実装しています。
+
+### Arrow Switching
+
+Arrowの左右切り替えとFollow ON / OFFに対応しています。
+
+Sword、Shield、Bowと同様に、左右それぞれのTransform Offsetを保存・復元できます。
+
+---
+
+### Arrow Save / Reset
+
+現在の `Arrow_LOC` のWorld Transformを `String_Reset_LOC` へ保存できます。
+
+`ARROW RESET` 実行時には、保存された `String_Reset_LOC` のWorld Transformへ `Arrow_LOC` を1回スナップします。
+
+継続的なConstraintではなく、必要なタイミングでArrowを保存位置へ戻すための処理です。
+
+---
+
+### String Follow
+
+弓を引くモーションをより直感的にするために作成しました。
+ボタンを押すだけで手と弦が追従するようになっています。
+
+String Followでは、弦を操作する側の腕についてFK / IKの状態を考慮した切り替えを行います。
+使用頻度や保守性の観点からコンストレイントではなく、弦のコントローラーと手のIKコントローラーをShiftキーで選択する方式をとりました。
+何度繰り返しても破綻せず、かつアニメーター側の自由度が担保できる(任意の位置でセット可能)こと、次項目のString Release次項目のに影響を出さないようにするためこのような設計にしてあります。
+選択が外れた場合はもう一度ボタンを押すだけで作業が再開可能です。
+
+切り替え前に必要なコントローラーの姿勢を合わせることで、FK / IK変更時のポーズ差を抑えます。
+
+IK側への姿勢合わせではShoulder、Elbow、Wristの位置から腕の平面を求め、Pole Vectorの位置を計算します。
+
+---
+
+### String Release
+
+`STRING RELEASE` は `String_anim` の弦操作用Attributeをリセットする機能です。
+
+StringのDraw系AttributeおよびTranslate系Attributeを初期値へ戻し、弦側の状態をリリースします。
+
+---
+
+## From Diana Rig to Equipment Manager
+
+Equipment Managerの原型は、オリジナルキャラクター **Diana** の武器リグ制作から生まれました。
+
+DianaではSword、Shield、Bow、Arrow、Stringなど複数の装備要素があり、アニメーション中の持ち替えやFollow切り替えを繰り返し行う必要がありました。
+
+そこで、ConstraintやAttributeを直接操作する代わりに、一連の操作をまとめて実行できる専用ツールを制作しました。
+
+その後、コードを整理し、
+
+- リグ固有設定
+- Mayaシーン操作
+- Bow固有処理
+- UIイベントと状態管理
+- UI描画
+
+を分離した現在のEquipment Managerへ再構成しています。
+
+現在もDianaリグの命名規則をベースとした設定を使用していますが、リグ依存情報を `constants.py` とConfigへ集約することで、処理本体とリグ固有情報を可能な限り分離しています。
+
+---
+
+## Architecture
+
+Equipment Managerでは、UIとMayaシーン操作を直接結び付けず、役割ごとに処理を分割しています。
+
+```text
+EquipmentManagerApp
+        |
+        +-- EquipmentController
+        |       |
+        |       +-- EquipmentService
+        |       |
+        |       +-- BowService
+        |
+        +-- EquipmentManagerUI
+        |
+        +-- EquipmentState
+```
+
+### EquipmentService
+
+Sword、Shield、Bowに共通するMayaシーン操作を担当します。
+
+- Side切り替え
+- Follow切り替え
+- Offset保存・復元
+- 現在状態の取得
+
+### BowService
+
+Bow、Arrow、String固有の処理を担当します。
+
+- Arrow Side / Follow
+- Arrow Offset
+- Arrow Save / Reset
+- String Release
+- String Follow
+- FK / IK姿勢合わせ
+- Pole Vector計算
+
+### EquipmentController
+
+UIイベントとアプリケーション状態の橋渡しを担当します。
+
+Mayaシーンの操作はServiceへ委譲し、操作後の状態更新やUI再描画を管理します。
+
+### EquipmentManagerUI
+
+`maya.cmds` を使用したUI描画を担当します。
+
+シーン操作そのものは持たず、Controllerから渡された状態を表示します。
+
+---
+
+## Scene State Synchronization
+
+ツール起動時や装備切り替え時には、現在のMayaシーンから状態を取得します。
+
+- 現在の持ち手
+- Equipment Follow
+- Arrow Follow
+- String Follow
+
+などを読み取り、UIのチェック表示やボタン状態へ反映します。
+
+起動時の同期処理は読み取り専用として設計し、**ツールを開いただけでリグの状態が変更されないこと**を重視しています。
+
+---
+
+## Validation
+
+操作前に必要なNodeやAttributeを確認し、想定したリグ構造が存在しない場合には警告を表示します。
+
+ConstraintについてもWeight Aliasを動的に取得し、左右両方のWeightが同時に有効になっているような不正状態を検出します。
+
+これにより、リグ構造の問題を無視したまま処理を続行することを避けています。
+
+---
+
+## Testing
+
+Mayaに依存しない処理については、Fake `maya.cmds` を使用したUnit Testを用意しています。
+
+現在、**22件のUnit Test**で以下の処理を検証しています。
+
+- Space値とSide判定
+- Constraint Weight
+- Follow状態
+- Offset処理
+- Arrow Reset
+- FK / IK姿勢合わせ
+- Pole Vector計算
+- Controller状態遷移
+- 起動時の読み取り専用同期
+- UIラベル
+
+GitHub ActionsではUnit Testに加えて、PythonファイルのCompile CheckとMaya非依存Import Checkを行います。
+
+---
+
+## Requirements
 
 - Autodesk Maya 2026
-- Maya付属Python 3
+- Python 3.11
 - `maya.cmds`
 - 外部Pythonパッケージ不要
 
-## インストール
+---
 
-`3Weapons` フォルダを任意のMayaスクリプト用フォルダへ配置し、そのフォルダを `sys.path` に追加します。リグ側には [constants.py](equipment_manager/constants.py) に記載されたノードとAttributeが必要です。
+## Current Scope
 
-## 起動方法
+現在のバージョンは、`constants.py` に定義された命名規則に対応する単一キャラクターリグを対象としています。
 
-通常利用時は次の2行で起動できます。
+複数キャラクターのNamespace自動解決や、任意のリグをUIから登録する完全な汎用システムには現在対応していません。
 
-```python
-from launch_equipment_manager import show
-show()
+一方で、リグ固有の設定とツール本体の処理を分離することで、今後異なるリグへ対応しやすい構造を目指しています。
+
+---
+
+## Project Structure
+
+```text
+equipment_manager/
+  app.py
+  controller.py
+  services.py
+  bow_service.py
+  ui.py
+  models.py
+  constants.py
+  maya_utils.py
+  exceptions.py
+
+tests/
+  test_equipment_manager.py
+
+launch_equipment_manager.py
+equipment_manager_shelf.py
 ```
 
-### シェルフ登録
+---
 
-次のコードをPythonシェルフへ登録してください。
+## Installation
+
+リポジトリをMayaユーザーディレクトリの `scripts/Equipment_manager` へ配置します。
+
+MayaのPython Script EditorまたはPython Shelfから以下を実行します。
 
 ```python
+"""Equipment Manager shelf command for Maya 2026."""
+
+import importlib
 import sys
 from pathlib import Path
 
 import maya.cmds as cmds
 
-scripts_path = (
-    Path(cmds.internalVar(userAppDir=True))
-    / "scripts"
-    / "3Weapons"
-)
-scripts_path_text = str(scripts_path)
 
-if scripts_path_text not in sys.path:
-    sys.path.insert(0, scripts_path_text)
+TOOL_DIRECTORY_NAME = "Equipment_manager"
+ENTRY_MODULE_NAME = "launch_equipment_manager"
 
-from launch_equipment_manager import show
-show()
+
+def resolve_tool_directory() -> Path:
+    """Resolve the tool relative to Maya's locale-independent user root."""
+    tool_directory = (
+        Path(cmds.internalVar(userAppDir=True))
+        / "scripts"
+        / TOOL_DIRECTORY_NAME
+    )
+    if not tool_directory.is_dir():
+        raise RuntimeError(
+            "Equipment Manager folder was not found: {}".format(
+                tool_directory
+            )
+        )
+    return tool_directory
+
+
+def unload_tool_modules() -> None:
+    """Unload only Equipment Manager modules for development-time reloads."""
+    module_names = tuple(sys.modules)
+    for module_name in module_names:
+        if (
+            module_name == ENTRY_MODULE_NAME
+            or module_name == "equipment_manager"
+            or module_name.startswith("equipment_manager.")
+        ):
+            del sys.modules[module_name]
+    importlib.invalidate_caches()
+
+
+def launch() -> None:
+    """Load the current source files and display one manager window."""
+    tool_directory = str(resolve_tool_directory())
+    if tool_directory not in sys.path:
+        sys.path.insert(0, tool_directory)
+
+    unload_tool_modules()
+    entry_module = importlib.import_module(ENTRY_MODULE_NAME)
+    entry_module.show()
+
+
+launch()
 ```
 
-この例はMayaのユーザールートを基準に相対的に解決するため、ユーザー名、ドライブ、OneDriveの有無、Mayaの表示言語に依存しません。`3Weapons` フォルダは `cmds.internalVar(userAppDir=True)` が返すフォルダ内の `scripts` 直下へ配置してください。
+フォルダ名を変更した場合は、コード内の `TOOL_DIRECTORY_NAME` も実際のフォルダ名に合わせて変更してください。
 
-開発中にMayaを再起動せず変更を読み直す場合は、`3Weapons_shelf.py` の内容をシェルフコマンドとして使用できます。このスクリプトは本ツールのパッケージだけを再読み込みします。
+---
 
-## ファイル構成
+## License
 
-```text
-3Weapons/
-├─ equipment_manager/
-│  ├─ __init__.py       # 公開パッケージAPI
-│  ├─ app.py            # 依存オブジェクトの生成とアプリ起動
-│  ├─ controller.py     # UIイベントと状態遷移の調整
-│  ├─ ui.py             # Maya UIの生成と表示更新
-│  ├─ services.py       # Sword・Shield・Bow共通のシーン操作
-│  ├─ bow_service.py    # Arrow・String固有のシーン操作
-│  ├─ models.py         # 設定／状態の型モデル
-│  ├─ constants.py      # リグ依存値とUI定数
-│  ├─ exceptions.py     # ユーザー向けドメイン例外
-│  └─ maya_utils.py     # Constraint／Transform共通処理
-├─ launch_equipment_manager.py # 通常起動用エントリーポイント
-├─ 3Weapons_shelf.py            # 開発時の再読み込み用シェルフコード
-├─ tests/                        # Mayaシーン不要のロジックテスト
-├─ .gitignore                    # Pythonキャッシュの除外設定
-└─ README.md
-```
-
-## アーキテクチャ
-
-```text
-Shelf / launch_equipment_manager.show()
-  ↓
-EquipmentManagerApp
-  ↓
-EquipmentController ─── EquipmentState
-  ├─ EquipmentService ── Maya scene
-  ├─ BowService ──────── Maya scene
-  └─ EquipmentManagerUI
-           ↓
-        Maya UI
-```
-
-### クラスごとの責務
-
-- `EquipmentManagerApp`: `maya.cmds` を各層へ注入し、Service・Controller・UIを組み立てます。
-- `EquipmentController`: ボタンイベント、状態遷移、エラー通知、表示更新の順序を管理します。
-- `EquipmentService`: 3装備に共通する持ち替え、Follow、Constraint、Space、Offsetを操作します。
-- `BowService`: ArrowのFollow／Pose／OffsetとString操作を担当します。
-- `EquipmentManagerUI`: UIハンドルをインスタンス内で所有し、受け取った状態だけを描画します。
-
-## 状態管理方針
-
-`EquipmentState` を状態の唯一の正本としています。選択中装備、装備側、装備Follow、Arrow側、Arrow Follow、String Followをモジュールグローバルへ複製しません。UIは状態を保持せず、Controllerから渡された状態を表示します。
-
-起動時は `setAttr`、Constraint変更、Offset復元を行いません。Swordの `weaponSpace`、Shieldの `shieldSpace`、Bowの `bowSpace`、Arrow/BowのConstraint Weight、String Followに使用する腕のFKIKを読み取り、状態へ同期してから描画します。装備タブ切り替え時も、切り替え先装備のSideとFollowをシーンから再取得します。
-
-Bowでは `ALL_Bow_anim.bowSpace` の `0 = Left`、`1 = Right` を持ち手の正本とし、Constraint WeightはFollow状態だけに使用します。そのため左右Weightが両方0のFollow OFF中もBow Sideは維持されます。Follow OFF中の持ち替えは `bowSpace` とOffsetだけを更新し、Followを勝手にONへ戻しません。
-
-ArrowのConstraint Weightが両方0の場合はFollow OFFとして扱い、Arrow Sideは不明状態としてチェックマークを表示しません。Bow／Arrowとも左右Weightが同時に有効な場合は、UIで表現できない異常状態として警告します。
-
-## Arrow Save／Reset仕様
-
-- Arrowのアニメーション／左右Offset操作用コントロールは `Arrow_anim` です。
-- Resetで移動するArrow本体は `Arrow_LOC` です。
-- Reset基準は `String_Reset_LOC` です。
-- `ALLOW SAVE` は `Arrow_LOC` の現在ワールド行列を `String_Reset_LOC` へ保存します。
-- `ARROW RESET` は `Arrow_LOC` を `String_Reset_LOC` のワールド行列へ1回だけスナップします。
-- どちらの操作も親子付けを変更しないため、BowとArrowの別階層を維持します。
-
-## 設計意図
-
-- UIとシーン操作を分離し、レイアウト変更がリグ処理へ影響しにくい構造にしました。
-- 状態を1か所へ集約し、ボタン表示と操作対象の不一致を防ぎます。
-- リグ依存値を `constants.py` へ集約し、処理コードからノード名を排除しました。
-- `maya.cmds` をコンストラクタから注入し、状態遷移や計算をMayaシーンなしでテスト可能にしました。
-- 装備定義を `EquipmentConfig` としたため、同じ操作規則の装備は設定追加を中心に拡張できます。
-
-## エラー処理方針
-
-必要ノード、Attribute、Constraint Weight Aliasを操作前に検証します。想定可能な問題は専用例外へ変換し、ControllerがMaya Script Editorへ `cmds.warning`、Viewportへ短いメッセージを表示します。例外を無条件に握りつぶす処理は使用していません。
-
-## 新しい装備の追加
-
-1. `constants.py` の `EQUIPMENT_CONFIGS` へ `EquipmentConfig` を追加します。
-2. 既存3装備と異なる切替規則がある場合だけ `EquipmentService.switch_side()` に小さな戦略分岐を追加します。
-3. UIタブが必要なら `EquipmentManagerUI` のタブ定義を追加します。
-4. 設定取得、状態遷移、Constraint Weightのテストを追加します。
-
-## Maya内での手動確認項目
-
-- ウィンドウが1つだけ開き、再起動でも重複しない
-- Sword／Shield／Bowの左右持ち替えと黄色い状態表示
-- 起動しただけではSpace、Constraint、Transformが変更されない
-- タブ切り替え時に各装備固有のSide／Followが再取得される
-- 各装備の左右Offset Saveと復元
-- 各装備のFollow ON／OFF
-- Arrow左右、Follow、Offset Save
-- ALLOW SAVEで`String_Reset_LOC`へ基準保存
-- ARROW RESETで`Arrow_LOC`が基準へ1回スナップする
-- String Release、String Follow ON／OFF
-- チェックマーク、色、Bowセクション表示と実状態の一致
-- 不足ノード／Attributeで理解しやすい警告が出る
-
-## テスト
-
-Mayaシーン不要のテストはMaya 2026の `mayapy` で実行できます。
-
-```powershell
-& "C:\Program Files\Autodesk\Maya2026\bin\mayapy.exe" -m unittest discover -s tests -v
-```
-
-テスト対象はSword／Shield／BowのSpace値、Bow／ArrowのConstraint Weight、Bow Follow OFFを維持した持ち替え、ゼロWeight、左右同時Weight、タブ切り替え時の再同期、String FollowのBow Side参照、読み取り専用起動、Arrow Reset対象、UIラベル、状態遷移です。実際のリグノードを変更する操作はMaya内の手動確認対象です。
-
-## 既知の制約
-
-- リグのノード名とAttribute名は `constants.py` の契約に依存します。
-- 複数キャラクターのNamespace自動解決には未対応です。
-- Maya GUIと対象リグが必要なため、シーン操作の完全自動テストは含みません。
-- 実リグ上の `Arrow_LOC` と `String_Reset_LOC` の階層・ロック状態はMaya内で手動確認が必要です。
-- String Follow ONでは、`Ik_{side}_hand_anim`を`{side}_wrist_skn_jnt`へ位置・回転とも`matchTransform`します。Pole Vectorは`shoulder/elbow/wrist_skn_jnt`が作る現在の腕平面上へ配置し、距離には上腕長と前腕長の合計を使用します。固定X／Yオフセットは加えないため、FK→IK切替時にElbowが腕平面からずれることを防ぎます。その後`FKIK=1`へ切り替え、IK HandとStringコントロールを選択します。
-- String Follow OFFでIKからFKへ戻す際は、`IK_{side}_shoulder_jnt`、`IK_{side}_elbow_jnt`、`IK_{side}_wrist_jnt`の現在ワールド姿勢を、対応する`FK_{side}_shoulder_anim`、`FK_{side}_elbow_anim`、`FK_{side}_wrist_anim`へ適用してから`FKIK=0`へ切り替えます。
-- 必要なJointまたはFKコントローラーがない場合は、FKIKを変更せずScript EditorとViewportへエラーを表示します。
+現在、ライセンスは指定していません。

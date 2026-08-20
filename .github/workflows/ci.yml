@@ -1,0 +1,45 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  python-checks:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Compile Python sources
+        run: python -m compileall -q -f equipment_manager tests equipment_manager_shelf.py launch_equipment_manager.py
+
+      - name: Run Maya-independent unit tests
+        run: python -m unittest discover -s tests -v
+
+      - name: Verify Maya-independent imports
+        run: |
+          python - <<'PY'
+          import equipment_manager
+          from equipment_manager.app import EquipmentManagerApp
+          from equipment_manager.bow_service import BowService
+          from equipment_manager.controller import EquipmentController
+          from equipment_manager.models import EquipmentState, Side
+          from equipment_manager.services import EquipmentService
+
+          assert equipment_manager.EquipmentManagerApp is EquipmentManagerApp
+          assert BowService and EquipmentController and EquipmentState
+          assert Side and EquipmentService
+          PY

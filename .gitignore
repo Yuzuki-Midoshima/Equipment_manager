@@ -1,4 +1,43 @@
-**/__pycache__/
+# Python bytecode and caches
+__pycache__/
 *.py[cod]
+*$py.class
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Test and coverage output
+.coverage
+.coverage.*
+htmlcov/
+
+# Virtual environments and packaging output
+.venv/
+venv/
+build/
+dist/
+*.egg-info/
+
+# Editors and local agent configuration
+.vscode/
+.idea/
+*.code-workspace
 .agents/
+
+# Logs and local distribution archives
+*.log
 /EquipmentManager_*.zip
+
+# Maya-generated backup, autosave, and preview data
+autosave/
+backup/
+mayaSwatches/
+*.autosave
+*.ma~
+*.mb~
+*.swatches
+
+# Operating-system metadata
+Thumbs.db
+Desktop.ini
+.DS_Store
