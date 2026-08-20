@@ -37,7 +37,40 @@ show()
 
 ### Maya Shelf
 
-開発中にMayaを再起動せず本ツールだけを再読み込みする場合は、[`equipment_manager_shelf.py`](equipment_manager_shelf.py)の内容をPython Shelfへ登録します。このスクリプトは`cmds.internalVar(userAppDir=True)`を基準に`scripts/Equipment_manager`を解決するため、ユーザー名やドライブ文字へ依存しません。
+開発中にMayaを再起動せず本ツールだけを再読み込みする場合は、以下のコードをPython Shelfへ登録します。このコードは`cmds.internalVar(userAppDir=True)`を基準に`scripts/Equipment_manager`を解決するため、ユーザー名やドライブ文字へ依存しません。
+
+```python
+import importlib
+import sys
+from pathlib import Path
+
+import maya.cmds as cmds
+
+
+tool_directory = (
+    Path(cmds.internalVar(userAppDir=True))
+    / "scripts"
+    / "Equipment_manager"
+)
+if not tool_directory.is_dir():
+    cmds.error("Equipment Manager folder was not found: {}".format(tool_directory))
+
+for module_name in tuple(sys.modules):
+    if (
+        module_name == "launch_equipment_manager"
+        or module_name == "equipment_manager"
+        or module_name.startswith("equipment_manager.")
+    ):
+        del sys.modules[module_name]
+
+importlib.invalidate_caches()
+tool_directory = str(tool_directory)
+if tool_directory not in sys.path:
+    sys.path.insert(0, tool_directory)
+
+entry_module = importlib.import_module("launch_equipment_manager")
+entry_module.show()
+```
 
 ## Usage
 
@@ -75,7 +108,6 @@ equipment_manager/             アプリケーションパッケージ
 tests/                         Maya非依存unit tests
 docs/media/                    Demo素材
 launch_equipment_manager.py    通常起動エントリーポイント
-equipment_manager_shelf.py     開発用Shelf・reloadスクリプト
 ```
 
 Mayaからのimportと既存起動方法を維持するため、無理な`src/` layoutへの変更は行っていません。
