@@ -1,5 +1,11 @@
 # Equipment Manager for Maya
 
+![Sword controls](docs/media/sword-controls.png)
+
+![Shield controls](docs/media/shield-controls.png)
+
+![Bow controls](docs/media/bow-controls.png)
+
 Autodesk Maya 2026向けの、**武器・プロップの持ち替えと追従状態を管理するアニメーション支援ツール**です。
 
 Sword、Shield、Bow、Arrow、Stringの操作を1つのUIへまとめ、Constraint WeightやSpace Attributeを手作業で切り替える際の操作負担や設定漏れを減らすことを目的としています。
@@ -47,6 +53,8 @@ Bowでは通常の装備操作に加えて、ArrowとStringを扱う専用機能
 
 ### Arrow Switching
 
+![Arrow switching controls](docs/media/arrow-controls.png)
+
 Arrowの左右切り替えとFollow ON / OFFに対応しています。
 
 Sword、Shield、Bowと同様に、左右それぞれのTransform Offsetを保存・復元できます。
@@ -54,6 +62,8 @@ Sword、Shield、Bowと同様に、左右それぞれのTransform Offsetを保�
 ---
 
 ### Arrow Save / Reset
+
+![Arrow save and reset controls](docs/media/arrow-pose-controls.png)
 
 現在の `Arrow_LOC` のWorld Transformを `String_Reset_LOC` へ保存できます。
 
@@ -64,6 +74,8 @@ Sword、Shield、Bowと同様に、左右それぞれのTransform Offsetを保�
 ---
 
 ### String Follow
+
+![String Follow controls](docs/media/string-follow-controls.png)
 
 弓を引くモーションをより直感的にするために作成しました。
 ボタンを押すだけで手と弦が追従するようになっています。
@@ -80,6 +92,8 @@ IK側への姿勢合わせではShoulder、Elbow、Wristの位置から腕の平
 ---
 
 ### String Release
+
+![String Release control](docs/media/string-release-control.png)
 
 `STRING RELEASE` は `String_anim` の弦操作用Attributeをリセットする機能です。
 
@@ -245,7 +259,6 @@ tests/
   test_equipment_manager.py
 
 launch_equipment_manager.py
-equipment_manager_shelf.py
 ```
 
 ---

@@ -24,7 +24,7 @@ jobs:
           python-version: "3.11"
 
       - name: Compile Python sources
-        run: python -m compileall -q -f equipment_manager tests equipment_manager_shelf.py launch_equipment_manager.py
+        run: python -m compileall -q -f equipment_manager tests launch_equipment_manager.py
 
       - name: Run Maya-independent unit tests
         run: python -m unittest discover -s tests -v
